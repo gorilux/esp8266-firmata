@@ -390,6 +390,36 @@ writePort(port, value, bitmask):  Write an 8 bit port.
 #define PIN_TO_PWM(p)           PIN_TO_DIGITAL(p)
 #define PIN_TO_SERVO(p)         (p)
 
+// ------------------------------------------------------
+// esp8266
+#elif defined(ESP8266)
+//  esp8266 uses odd pin configuration and we map it as following. (4 input Analog pins and 4 output PWM pins)
+// PWM pins can be easily used as digitals when using 0 / 255 values.
+// Analog input pins will work like digital pins, using 0 or 1023 values.
+// PIN0 A0 
+// PIN1 D4
+// PIN2 D5
+// PIN3 D6
+// PIN4 D0
+// PIN5 D1
+// PIN6 D2
+// PIN7 D3
+
+#define TOTAL_ANALOG_PINS       (4)
+#define TOTAL_PINS              (8) 
+#define VERSION_BLINK_PIN       (4)  // D0 on NodeMCU. Must be pin number, not GPIO.
+#define IS_PIN_DIGITAL(p)       (false)
+#define IS_PIN_ANALOG(p)        (p >= 0 & p < 4)
+#define IS_PIN_PWM(p)           ((p) >= 4 && (p) < TOTAL_PINS)
+#define IS_PIN_SERVO(p)         (false)
+#define IS_PIN_I2C(p)           (false)
+#define IS_PIN_SPI(p)           (false)
+#define PIN_TO_DIGITAL(p)       (p)
+#define PIN_TO_ANALOG(p)        (PIN_TO_PWM(p)) // Always only one analog pin
+#define PIN_TO_PWM(p)           (p==0? A0 : p==1? D4 : p==2? D5 : p==3? D6 : p==4? D0 : p==5? D1 : p==6? D2 : D3 )
+#define PIN_TO_SERVO(p)         PIN_TO_DIGITAL(p)
+// ------------------------------------------------------
+
 
 // Intel Galileo Board (gen 1 and 2) and Intel Edison
 #elif defined(ARDUINO_LINUX)
