@@ -75,10 +75,6 @@ void writeROM(char *buf, int romIndex, int size)
   }
 }
 
-// replace with ethernet shield mac. Must be unique for your network
-// TODO: make it configurable in EEPROM
-const byte mac[] = {0x90, 0xA2, 0xDA, 0x00, 0x53, 0xE5};
-
 /*==============================================================================
    GLOBAL VARIABLES
   ============================================================================*/
@@ -135,7 +131,7 @@ void reportAnalogCallback(byte analogPin, int value)
 */
 void setPinModeCallback(byte pin, int mode)
 {
-  if (pinConfig[pin] == IGNORE)
+  if (pinConfig[pin] == PIN_MODE_IGNORE)
     return;
 
   if (IS_PIN_ANALOG(pin)) {
@@ -306,12 +302,13 @@ EthernetClientStream *stream = NULL;
 void setup()
 {
   // We start serial anyway, if we are debuging or not.
-  Serial.begin(57600); while(!Serial) {;}
-
+  Serial.begin(57600); 
+  EEPROM.begin(128);
   readROM(ssid, 0, SSID_SIZE);
   readROM(password, SSID_SIZE, PASS_SIZE);
   EEPROM.get(SSID_SIZE+PASS_SIZE, remote_ip);
   EEPROM.get(SSID_SIZE+PASS_SIZE+sizeof(remote_ip), remote_port);
+  EEPROM.end();
   stream = new EthernetClientStream(client, IPAddress(0, 0, 0, 0), IPAddress(remote_ip), NULL, remote_port);
   
   int attempts = 0;
@@ -339,13 +336,19 @@ void setup()
 void executeSerialCommand(String command) {
   DEBUG_PRINT("Executing command:");
   DEBUG_PRINTLN(command);
+  EEPROM.begin(128);
   if (command.indexOf("set ssid ") == 0) {
-    command.substring(9).toCharArray(ssid, SSID_SIZE+1);
+    String s = command.substring(9);
+    s.toCharArray(ssid, SSID_SIZE);
+    ssid[s.length()] = 0;   
     writeROM(ssid, 0, SSID_SIZE);
-    Serial.println("ssid was set.");
+    Serial.print("ssid was set:");
+    Serial.println(s);
   } else {
   if (command.indexOf("set pass ") == 0) {
-    command.substring(9).toCharArray(password, PASS_SIZE+1);
+    String s = command.substring(9);
+    s.toCharArray(password, PASS_SIZE);
+    password[s.length()] = 0;
     writeROM(password, SSID_SIZE, PASS_SIZE);
     Serial.println("password was set.");
   } else {
@@ -369,9 +372,11 @@ void executeSerialCommand(String command) {
     Serial.println("remote_ip was set.");
   } else {
   if (command.indexOf("set remote port ") == 0) {
-    remote_port = command.substring(16).toInt();
+    String s = command.substring(16);
+    remote_port = s.toInt();
     EEPROM.put(SSID_SIZE+PASS_SIZE+sizeof(remote_ip), remote_port);
-    Serial.println("remote_port was set.");
+    Serial.print("remote_port was set:");
+    Serial.println(s);
   } else {
   if (command.indexOf("connect") == 0) {
     delete stream;
@@ -382,6 +387,8 @@ void executeSerialCommand(String command) {
   if (command.indexOf("status") ==0 ) {
     printWifiStatus();
   }}}}}}
+  EEPROM.commit();
+  EEPROM.end();
   Serial.flush();
 }
 
